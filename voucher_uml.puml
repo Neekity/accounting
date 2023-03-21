@@ -2,7 +2,7 @@
 namespace accounting {
     class AccountBalance << (S,Aquamarine) >> {
         + CompanyName string
-        + AccountingCode AccountingCode
+        + AccountingCode string
         + DebitAmount int
         + CreditAmount int
 
