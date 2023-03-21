@@ -1,0 +1,42 @@
+@startuml
+namespace accounting {
+    class AccountBalance << (S,Aquamarine) >> {
+        + CompanyName string
+        + AccountingCode AccountingCode
+        + DebitAmount int
+        + CreditAmount int
+
+    }
+    class AccountingCode << (S,Aquamarine) >> {
+    }
+    class AccountingItem << (S,Aquamarine) >> {
+        + OrgClass string
+        + OrgNumber string
+        + OrgName string
+
+    }
+    class AccountingNode << (S,Aquamarine) >> {
+        + DebitAmount int
+        + CreditAmount int
+        + Code string
+        + Children []*AccountingNode
+
+    }
+    class Voucher << (S,Aquamarine) >> {
+        + CompanyId int
+        + VoucherDate string
+        + VoucherEntries []VoucherEntry
+
+    }
+    class VoucherEntry << (S,Aquamarine) >> {
+        + Remark string
+        + AccountCode string
+        + AccountingItems []AccountingItem
+        + DebitAmount int
+        + CreditAmount int
+
+    }
+}
+
+
+@enduml
