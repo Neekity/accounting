@@ -1,42 +1,41 @@
 @startuml
-namespace accounting {
-    class AccountBalance << (S,Aquamarine) >> {
-        + CompanyName string
-        + AccountingCode string
-        + DebitAmount int
-        + CreditAmount int
-
-    }
-    class AccountingCode << (S,Aquamarine) >> {
-    }
-    class AccountingItem << (S,Aquamarine) >> {
-        + OrgClass string
-        + OrgNumber string
-        + OrgName string
-
-    }
-    class AccountingNode << (S,Aquamarine) >> {
-        + DebitAmount int
-        + CreditAmount int
-        + Code string
-        + Children []*AccountingNode
-
-    }
-    class Voucher << (S,Aquamarine) >> {
-        + CompanyId int
-        + VoucherDate string
-        + VoucherEntries []VoucherEntry
-
-    }
-    class VoucherEntry << (S,Aquamarine) >> {
-        + Remark string
-        + AccountCode string
-        + AccountingItems []AccountingItem
-        + DebitAmount int
-        + CreditAmount int
-
-    }
+left to right direction
+skinparam linetype ortho
+skinparam rectangle {
+  BackgroundColor LightBlue
+  BorderColor MidnightBlue
 }
+skinparam databaseBackgroundColor LightGray
+skinparam queueBackgroundColor Wheat
+title Accounting Message & Voucher Flow (transType 标注)
 
+actor "To B 业务系统" as Biz
+actor "通道清结算" as Channel
+actor "银行流水" as Bank
+
+rectangle "Accounting API\n(REST/gRPC)" as API
+rectangle "Message Context\n幂等存储" as MSG
+rectangle "Rule Context\n规则引擎" as RULE
+rectangle "Voucher Context\n凭证聚合" as VOUCHER
+database "Ledger DB" as DB
+queue "Outbox/Event Bus" as OUTBOX
+rectangle "Finance Ops & BI" as OPS
+
+Biz --> API : loan_repayplan\nloan_reverse\nloan_decrease\nrepay_reclass_early
+Channel --> API : channel_payout\nrepay_before_compensate\nchannel_mark_*\nchannel_settle_*\noverflow\nescrow_auto_withdraw
+Bank --> API : bank_adjustment_rdl\nbank_adjustment_escrow\nescrow_to_operation\noverflow_refund
+
+API --> MSG : Persist message\n保留 transType / amount_type
+MSG --> RULE : 匹配凭证规则\n(按 transType, 资产, 通道)
+RULE --> VOUCHER : 模板合成分录
+VOUCHER --> DB : 保存凭证/分录
+VOUCHER --> OUTBOX : VoucherGenerated\nVoucherRegenerated
+OUTBOX --> OPS : 订阅凭证事件\n用于报表、再处理
+
+OPS --> API : rebuild 请求\n(复用原 transType)
+
+legend right
+channel_mark_* = channel_mark_loan / channel_mark_repay / channel_mark_settlement\nchannel_settle_* = principal_interest / service_fee / interest_tax / vat / provision / overflow
+legend
 
 @enduml
